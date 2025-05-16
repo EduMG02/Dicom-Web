@@ -1,0 +1,6 @@
+Flask
+pymongo
+boto3
+pydicom
+Pillow
+python-dotenv

@@ -2,6 +2,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import boto3
 from pymongo import MongoClient
 from datetime import datetime
@@ -9,21 +11,21 @@ import pydicom
 from io import BytesIO
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
+app.secret_key = os.environ.get('SECRET_KEY')
 
 # MongoDB Atlas
-MONGO_URI = 'mongodb+srv://jorgedinosauriovolador:zrPqd3w54t2OAHvE@oni-chan.kgefijg.mongodb.net/?retryWrites=true&w=majority&appName=Oni-Chan'
+MONGO_URI = os.environ.get('MONGO_URI')
 client = MongoClient(MONGO_URI)
 db = client.tuBase
 coleccion_archivos = db.archivos
 coleccion_usuarios = db.usuarios
 
 # Amazon S3
-S3_BUCKET = 'yameteee'
+S3_BUCKET = os.environ.get('S3_BUCKET')
 s3 = boto3.client(
     's3',
-    aws_access_key_id='AKIA2HVQ5IZDB53ORFJG',
-    aws_secret_access_key='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'
+    aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
 )
 
 ALLOWED_EXTENSIONS = {'dcm'}
