@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Archivos DICOM - {{ usuario }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Archivos DICOM subidos - Usuario: {{ usuario }}</h2>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger mb-3">Cerrar sesión</a>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-info">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('index') }}" method="post" enctype="multipart/form-data" class="mb-4">
+            <div class="form-group">
+                <label for="archivos">Subir uno o más archivos DICOM (.dcm):</label>
+                <input type="file" class="form-control-file" id="archivos" name="archivos" accept=".dcm" multiple required>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Subir archivos</button>
+        </form>
+
+        {% if archivos %}
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Paciente (PatientName)</th>
+                    <th>PatientID</th>
+                    <th>Fecha de subida (UTC)</th>
+                    <th>Subido por</th>
+                    <th>Nombre</th>
+                    <th>Descargar</th>
+                    <th>Ver detalles</th>
+                    <th>Eliminar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for archivo in archivos %}
+                <tr>
+                    <td>{{ archivo.paciente }}</td>
+                    <td>{{ archivo.patient_id if archivo.patient_id else 'Desconocido' }}</td>
+                    <td>{{ archivo.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ archivo.usuario }}</td>
+                    <td>{{ archivo.nombre }}</td>
+                    <td><a href="{{ archivo.url }}" target="_blank" class="btn btn-sm btn-success">Descargar</a></td>
+                    <td><a href="{{ url_for('ver', filename=archivo.nombre) }}" class="btn btn-sm btn-info">Ver detalles</a></td>
+                    <td>
+                        <form action="{{ url_for('eliminar_archivo', filename=archivo.nombre) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Seguro que quieres eliminar este archivo?');">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No hay archivos subidos todavía.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

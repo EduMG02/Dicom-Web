@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualización DICOM - {{ filename }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Detalles del archivo DICOM: {{ filename }}</h2>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mb-3">Volver</a>
+
+        <h4>Metadatos</h4>
+        <table class="table table-bordered">
+            <tbody>
+                {% for key, value in metadatos.items() %}
+                <tr>
+                    <th>{{ key }}</th>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h4>Imagen</h4>
+        {% if imagen %}
+        <img src="data:image/png;base64,{{ imagen }}" class="img-fluid" alt="Imagen DICOM">
+        {% else %}
+        <p>No se pudo mostrar la imagen.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
