@@ -50,7 +50,7 @@
                     <td>{{ archivo.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                     <td>{{ archivo.usuario }}</td>
                     <td>{{ archivo.nombre }}</td>
-                    <td><a href="{{ archivo.url }}" target="_blank" class="btn btn-sm btn-success">Descargar</a></td>
+                    <td><a href="{{ url_for('descargar', filename=archivo.nombre) }}" class="btn btn-sm btn-success">Descargar</a></td>
                     <td><a href="{{ url_for('ver', filename=archivo.nombre) }}" class="btn btn-sm btn-info">Ver detalles</a></td>
                     <td>
                         <form action="{{ url_for('eliminar_archivo', filename=archivo.nombre) }}" method="post" style="display:inline;">

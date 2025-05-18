@@ -9,6 +9,10 @@ from pymongo import MongoClient
 from datetime import datetime
 import pydicom
 from io import BytesIO
+import base64
+import numpy as np
+from PIL import Image
+import io
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
@@ -89,11 +93,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-import base64
-import numpy as np
-from PIL import Image
-import io
-
 @app.route('/ver/<filename>')
 def ver(filename):
     if 'usuario' not in session:
@@ -168,6 +167,27 @@ def eliminar_archivo(filename):
         flash(f'Error al eliminar el archivo: {str(e)}')
 
     return redirect(url_for('index'))
+
+
+@app.route('/descargar/<filename>')
+def descargar(filename):
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+
+    try:
+        url_presignada = s3.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': filename,
+                'ResponseContentDisposition': f'attachment; filename="{filename}"'
+            },
+            ExpiresIn=60  # válido por 60 segundos
+        )
+        return redirect(url_presignada)
+    except Exception as e:
+        flash(f'Error al generar el enlace de descarga: {str(e)}')
+        return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
