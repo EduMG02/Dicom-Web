@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="container mt-4">
-        <h2>Archivos DICOM subidos - Usuario: {{ usuario }}</h2>
+        <h2>Archivos DICOM - Usuario: {{ usuario }} (Rol: {{ rol }})</h2>
         <a href="{{ url_for('logout') }}" class="btn btn-danger mb-3">Cerrar sesión</a>
 
         {% with messages = get_flashed_messages() %}
@@ -20,6 +20,7 @@
         {% endif %}
         {% endwith %}
 
+        {% if rol in ['doctor', 'clinica'] %}
         <form action="{{ url_for('index') }}" method="post" enctype="multipart/form-data" class="mb-4">
             <div class="form-group">
                 <label for="archivos">Subir uno o más archivos DICOM (.dcm):</label>
@@ -27,6 +28,7 @@
             </div>
             <button type="submit" class="btn btn-primary mt-2">Subir archivos</button>
         </form>
+        {% endif %}
 
         {% if archivos %}
         <table class="table table-striped table-bordered">
@@ -39,7 +41,9 @@
                     <th>Nombre</th>
                     <th>Descargar</th>
                     <th>Ver detalles</th>
+                    {% if rol in ['doctor', 'clinica'] %}
                     <th>Eliminar</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -52,11 +56,13 @@
                     <td>{{ archivo.nombre }}</td>
                     <td><a href="{{ url_for('descargar', filename=archivo.nombre) }}" class="btn btn-sm btn-success">Descargar</a></td>
                     <td><a href="{{ url_for('ver', filename=archivo.nombre) }}" class="btn btn-sm btn-info">Ver detalles</a></td>
+                    {% if rol in ['doctor', 'clinica'] %}
                     <td>
                         <form action="{{ url_for('eliminar_archivo', filename=archivo.nombre) }}" method="post" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Seguro que quieres eliminar este archivo?');">Eliminar</button>
                         </form>
                     </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

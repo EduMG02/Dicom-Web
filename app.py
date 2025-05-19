@@ -42,8 +42,11 @@ def login():
     if request.method == 'POST':
         usuario = request.form['usuario']
         password = request.form['password']
-        if usuario == 'admin' and password == '123':
+        usuario_doc = coleccion_usuarios.find_one({'usuario': usuario, 'password': password})
+        if usuario_doc:
             session['usuario'] = usuario
+            session['rol'] = usuario_doc.get('rol')
+            session['patient_id'] = usuario_doc.get('patient_id')  # solo si es paciente
             return redirect(url_for('index'))
         flash('Credenciales inválidas')
     return render_template('login.html')
@@ -53,7 +56,7 @@ def index():
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
+    if request.method == 'POST' and session['rol'] in ['admin', 'clinica', 'doctor']:
         archivos = request.files.getlist('archivos')
         for archivo in archivos:
             if archivo and archivo.filename != '':
@@ -67,7 +70,7 @@ def index():
                     ds = pydicom.dcmread(BytesIO(contenido), force=True)
                     paciente = ds.get("PatientName", "Desconocido")
                     patient_id = ds.get("PatientID", "Desconocido")
-                except Exception as e:
+                except Exception:
                     paciente = "Error al leer"
                     patient_id = "Error al leer"
 
@@ -84,9 +87,17 @@ def index():
                 })
         flash('Archivos DICOM subidos a S3 y registrados en MongoDB')
 
-    archivos = list(coleccion_archivos.find({}))  # Mostrar todos los archivos (o filtrar por usuario si quieres)
-    return render_template('index.html', archivos=archivos, usuario=session['usuario'])
+    # Visualización según el rol
+    if session['rol'] in ['admin', 'clinica']:
+        archivos = list(coleccion_archivos.find({}))
+    elif session['rol'] == 'doctor':
+        archivos = list(coleccion_archivos.find({'usuario': session['usuario']}))
+    elif session['rol'] == 'paciente':
+        archivos = list(coleccion_archivos.find({'patient_id': session.get('patient_id')}))
+    else:
+        archivos = []
 
+    return render_template('index.html', archivos=archivos, usuario=session['usuario'], rol=session['rol'])
 
 @app.route('/logout')
 def logout():
@@ -98,7 +109,6 @@ def ver(filename):
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    # Descargar archivo DICOM desde S3 a memoria
     archivo_memoria = io.BytesIO()
     try:
         s3.download_fileobj(S3_BUCKET, filename, archivo_memoria)
@@ -108,7 +118,6 @@ def ver(filename):
         flash('No se pudo cargar el archivo DICOM')
         return redirect(url_for('index'))
 
-    # Extraer metadatos
     def safe_get(tag):
         return str(ds.get(tag, 'N/A'))
 
@@ -129,14 +138,10 @@ def ver(filename):
         'Columns': safe_get("Columns"),
     }
 
-    # Convertir imagen DICOM a PNG base64 para mostrar en la web
     try:
-        # ds.pixel_array es un numpy array con la imagen
         arr = ds.pixel_array
-        # Normalizar imagen a 0-255
         arr = (arr - arr.min()) / (arr.max() - arr.min()) * 255
         arr = arr.astype('uint8')
-
         im = Image.fromarray(arr)
         buffer = io.BytesIO()
         im.save(buffer, format="PNG")
@@ -146,28 +151,26 @@ def ver(filename):
 
     return render_template('ver.html', metadatos=metadatos, imagen=encoded_img, filename=filename)
 
-
 @app.route('/eliminar/<filename>', methods=['POST'])
 def eliminar_archivo(filename):
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    try:
-        # Eliminar archivo de S3
-        s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+    archivo = coleccion_archivos.find_one({'nombre': filename})
+    if not archivo:
+        flash("Archivo no encontrado")
+        return redirect(url_for('index'))
 
-        # Eliminar entrada en MongoDB
-        resultado = coleccion_archivos.delete_one({'nombre': filename})
-
-        if resultado.deleted_count > 0:
+    if session['rol'] in ['admin', 'clinica'] or (session['rol'] == 'doctor' and archivo['usuario'] == session['usuario']):
+        try:
+            s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+            coleccion_archivos.delete_one({'nombre': filename})
             flash(f'Archivo {filename} eliminado correctamente.')
-        else:
-            flash(f'Archivo {filename} no encontrado en la base de datos.')
-    except Exception as e:
-        flash(f'Error al eliminar el archivo: {str(e)}')
-
+        except Exception as e:
+            flash(f'Error al eliminar el archivo: {str(e)}')
+    else:
+        flash("No tienes permiso para eliminar este archivo.")
     return redirect(url_for('index'))
-
 
 @app.route('/descargar/<filename>')
 def descargar(filename):
@@ -182,13 +185,12 @@ def descargar(filename):
                 'Key': filename,
                 'ResponseContentDisposition': f'attachment; filename="{filename}"'
             },
-            ExpiresIn=60  # válido por 60 segundos
+            ExpiresIn=60
         )
         return redirect(url_presignada)
     except Exception as e:
         flash(f'Error al generar el enlace de descarga: {str(e)}')
         return redirect(url_for('index'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)
