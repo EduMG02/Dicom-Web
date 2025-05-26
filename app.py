@@ -85,9 +85,9 @@ def index():
                     'patient_id': str(patient_id),
                     'url': enlace
                 })
-        flash('Archivos DICOM subidos a S3 y registrados en MongoDB')
+        flash('Archivos DICOM subidos correctamente')
 
-    # Visualización según el rol
+    # Obtener archivos según rol (existente)
     if session['rol'] in ['admin', 'clinica']:
         archivos = list(coleccion_archivos.find({}))
     elif session['rol'] == 'doctor':
@@ -97,7 +97,52 @@ def index():
     else:
         archivos = []
 
-    return render_template('index.html', archivos=archivos, usuario=session['usuario'], rol=session['rol'])
+    # Nuevo: Obtener usuarios si es clínica
+    usuarios = []
+    if session['rol'] == 'clinica':
+        usuarios = list(coleccion_usuarios.find({}, {'password': 0}))  # Excluye contraseñas
+
+    return render_template(
+        'index.html',
+        archivos=archivos,
+        usuarios=usuarios,
+        usuario=session['usuario'],
+        rol=session['rol']
+    )
+
+@app.route('/agregar_usuario', methods=['POST'])
+def agregar_usuario():
+    if 'usuario' not in session or session['rol'] != 'clinica':
+        flash('Acceso no autorizado')
+        return redirect(url_for('login'))
+
+    nuevo_usuario = request.form['usuario']
+    nueva_password = request.form['password']
+    nuevo_rol = request.form['rol']
+
+    # Validación
+    if not all([nuevo_usuario, nueva_password, nuevo_rol]):
+        flash('Todos los campos son requeridos')
+        return redirect(url_for('index'))
+    
+    if nuevo_rol not in ['doctor', 'paciente']:
+        flash('Rol no válido')
+        return redirect(url_for('index'))
+
+    if coleccion_usuarios.find_one({'usuario': nuevo_usuario}):
+        flash('El usuario ya existe')
+        return redirect(url_for('index'))
+
+    # Insertar nuevo usuario
+    coleccion_usuarios.insert_one({
+        'usuario': nuevo_usuario,
+        'password': nueva_password,
+        'rol': nuevo_rol,
+        'fecha_creacion': datetime.utcnow()
+    })
+
+    flash(f'Usuario {nuevo_usuario} creado como {nuevo_rol}')
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():

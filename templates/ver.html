@@ -2,32 +2,116 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualización DICOM - {{ filename }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-primario: #3498db;
+            --color-secundario: #1cc88a;
+            --color-fondo: #f8f9fc;
+        }
+        body {
+            background-color: var(--color-fondo);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-card {
+            background: linear-gradient(135deg, var(--color-primario) 0%, #4e73df 100%);
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        .metadata-card {
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .image-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .table-metadata th {
+            background-color: #f7f9fc;
+            width: 30%;
+        }
+        .btn-volver {
+            border-color: var(--color-primario);
+            color: white;
+        }
+        .btn-volver:hover {
+            background-color: var(--color-primario);
+            color: white;
+        }
+    </style>
+
 </head>
 <body>
-    <div class="container mt-4">
-        <h2>Detalles del archivo DICOM: {{ filename }}</h2>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary mb-3">Volver</a>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="header-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-file-medical me-2"></i>{{ filename }}
+                </h2>
+                <a href="{{ url_for('index') }}" class="btn btn-volver btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i>Volver
+                </a>
+            </div>
+        </div>
 
-        <h4>Metadatos</h4>
-        <table class="table table-bordered">
-            <tbody>
-                {% for key, value in metadatos.items() %}
-                <tr>
-                    <th>{{ key }}</th>
-                    <td>{{ value }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Tarjeta de Metadatos -->
+        <div class="card metadata-card mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-4">
+                    <i class="fas fa-tags me-2"></i>Metadatos DICOM
+                </h4>
+                
+                <div class="table-responsive">
+                    <table class="table table-metadata table-hover">
+                        <tbody>
+                            {% for key, value in metadatos.items() %}
+                            <tr>
+                                <th>{{ key }}</th>
+                                <td>{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-        <h4>Imagen</h4>
-        {% if imagen %}
-        <img src="data:image/png;base64,{{ imagen }}" class="img-fluid" alt="Imagen DICOM">
-        {% else %}
-        <p>No se pudo mostrar la imagen.</p>
-        {% endif %}
+        <!-- Sección de Imagen -->
+        <div class="card metadata-card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">
+                    <i class="fas fa-image me-2"></i>Visualización
+                </h4>
+                
+                <div class="image-container text-center">
+                    {% if imagen %}
+                    <img src="data:image/png;base64,{{ imagen }}" class="img-fluid rounded shadow" alt="Imagen DICOM" style="max-height: 70vh;">
+                    {% else %}
+                    <div class="py-5 text-muted">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <p class="mb-0">No se pudo cargar la imagen</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-3 mt-4 text-muted">
+            <small>Salux © 2025 - Visualizador DICOM</small>
+        </footer>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
